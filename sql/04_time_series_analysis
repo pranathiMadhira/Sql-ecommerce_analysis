@@ -1,0 +1,134 @@
+-- =========================================================
+-- STEP 6: TIME-SERIES ANALYSIS
+-- =========================================================
+
+
+-- Q1. Calculate total Completed revenue for each month of 2025.
+select strftime('%Y-%m', o.order_date) as month, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue from orders o
+where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+group by month
+order by month;
+
+-- Q2. Calculate the number of Completed orders for each month.
+select strftime('%Y-%m', o.order_date) as month, count(o.order_id) as completed_orders from orders o
+where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+group by month
+order by month;
+
+-- Q3. Calculate the monthly Average Order Value (AOV).
+-- Return:
+-- month
+-- total_revenue
+-- completed_orders
+-- average_order_value
+-- Sort chronologically.
+select strftime('%Y-%m', o.order_date) as month, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue, count(o.order_id) as completed_orders,
+    (sum(o.quantity*o.unit_price*(1-o.discount))/count(o.order_id)) as average_order_value
+from orders o
+where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+group by month
+order by month;
+
+-- Q4. Calculate the month-over-month (MoM) revenue growth.
+-- Return:
+-- month
+-- total_revenue
+-- previous_month_revenue
+-- growth_percentage
+-- The first month should have NULL for previous_month_revenue
+-- and growth_percentage.
+with monthly_revenue as (
+    select strftime('%Y-%m', o.order_date) as month, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue from orders o
+    where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+    group by month
+)
+select month, total_revenue, LAG(total_revenue) OVER (ORDER BY month) as previous_month_revenue,
+    CASE 
+        WHEN LAG(total_revenue) OVER (ORDER BY month) IS NULL THEN NULL
+        ELSE (total_revenue - LAG(total_revenue) OVER (ORDER BY month)) / LAG(total_revenue) OVER (ORDER BY month) * 100
+    END as growth_percentage
+from monthly_revenue;
+
+-- Q5. Calculate cumulative/running revenue throughout 2025.
+-- Return:
+-- month
+-- monthly_revenue
+-- cumulative_revenu
+with monthly_revenue as (
+    select strftime('%Y-%m', o.order_date) as month, sum(o.quantity*o.unit_price*(1-o.discount)) as monthly_revenue from orders o
+    where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+    group by month
+)
+select month, monthly_revenue, sum(monthly_revenue) OVER (ORDER BY month) as cumulative_revenue
+from monthly_revenue;
+
+-- Q6. Find the month with the highest Completed revenue.
+-- Return:
+-- month
+-- total_revenue
+with monthly_revenue as (
+    select strftime('%Y-%m', o.order_date) as month, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue from orders o
+    where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+    group by month
+)
+,highest_revenue as (
+    select month, total_revenue from monthly_revenue
+    where total_revenue = (select max(total_revenue) from monthly_revenue)
+)
+select * from highest_revenue;
+
+-- Q7. Find the month with the lowest Completed revenue.
+-- Return:
+-- month
+-- total_revenue
+with monthly_revenue as (
+    select strftime('%Y-%m', o.order_date) as month, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue from orders o
+    where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+    group by month
+)
+,lowest_revenue as (
+    select month, total_revenue from monthly_revenue
+    where total_revenue = (select min(total_revenue) from monthly_revenue)
+)
+select * from lowest_revenue;
+
+-- Q8. Calculate monthly revenue for each product category.
+-- Return:
+-- month
+-- category
+-- total_revenue
+-- Sort by month and revenue descending.
+with monthly_category_revenue as (
+    select strftime('%Y-%m', o.order_date) as month, p.category, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue from orders o
+    join products p on o.product_id = p.product_id
+    where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+    group by month, category
+)
+select month, category, total_revenue
+from monthly_category_revenue
+order by month, total_revenue desc;
+
+-- Q9. For each category, calculate the month-over-month
+-- revenue growth.
+-- Return:
+-- month
+-- category
+-- total_revenue
+-- previous_month_revenue
+-- growth_percentage
+with monthly_category_revenue as (
+    select strftime('%Y-%m', o.order_date) as month, p.category, sum(o.quantity*o.unit_price*(1-o.discount)) as total_revenue from orders o
+    join products p on o.product_id = p.product_id
+    where o.order_status='Completed' and o.order_date >= '2025-01-01' and o.order_date < '2026-01-01'
+    group by month, category
+)
+select month, category, total_revenue, LAG(total_revenue) OVER (PARTITION BY category ORDER BY month) as previous_month_revenue,
+    CASE 
+        WHEN LAG(total_revenue) OVER (PARTITION BY category ORDER BY month) IS NULL THEN NULL
+        ELSE (total_revenue - LAG(total_revenue) OVER (PARTITION BY category ORDER BY month)) / LAG(total_revenue) OVER (PARTITION BY category ORDER BY month) * 100
+    END as growth_percentage    
+from monthly_category_revenue
+order by category, month;
+
+-- The first month for each category should have NULL
+-- for previous_month_revenue and growth_percentage.
