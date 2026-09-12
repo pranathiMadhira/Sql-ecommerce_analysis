@@ -51,3 +51,40 @@ The `products` table is connected to the `orders` table through
 The `orders` table acts as the central transaction table, while the
 `customers` and `products` tables provide additional information used
 for analysis.
+
+-- ============================================
+-- E-COMMERCE DATABASE SETUP
+-- ============================================
+
+-- Customers table
+CREATE TABLE customers (
+    customer_id INTEGER PRIMARY KEY,
+    customer_name TEXT NOT NULL,
+    city TEXT,
+    state TEXT,
+    signup_date DATE
+);
+
+-- Products table
+CREATE TABLE products (
+    product_id INTEGER PRIMARY KEY,
+    product_name TEXT NOT NULL,
+    category TEXT,
+    sub_category TEXT,
+    cost_price REAL
+);
+
+-- Orders table
+CREATE TABLE orders (
+    order_id INTEGER PRIMARY KEY,
+    customer_id INTEGER,
+    order_date DATE,
+    product_id INTEGER,
+    quantity INTEGER,
+    unit_price REAL,
+    discount REAL,
+    payment_method TEXT,
+    order_status TEXT,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
