@@ -1,0 +1,188 @@
+-- =========================================================
+-- CASE 1: REVENUE DECLINE
+-- =========================================================
+
+-- Q1. Management notices that monthly revenue declined
+-- compared with the previous month.
+WITH monthly_revenue AS (
+    SELECT
+        strftime('%Y-%m', o.order_date) AS month,
+        SUM(o.quantity * o.unit_price * (1 - o.discount)) AS current_month_revenue
+    FROM orders o
+    WHERE o.order_status = 'Completed'
+      AND o.order_date >= '2025-01-01'
+      AND o.order_date < '2026-01-01'
+    GROUP BY month
+),
+monthly_comparison AS (
+    SELECT
+        month,
+        current_month_revenue,
+        LAG(current_month_revenue) OVER (
+            ORDER BY month
+        ) AS previous_month_revenue
+    FROM monthly_revenue
+)
+
+SELECT
+    month,
+    current_month_revenue,
+    previous_month_revenue,
+    current_month_revenue - previous_month_revenue AS revenue_change,
+    (current_month_revenue - previous_month_revenue)
+        * 100.0 / previous_month_revenue AS growth_percentage
+FROM monthly_comparison
+WHERE current_month_revenue < previous_month_revenue
+ORDER BY month;
+
+
+-- Q2. For the month with the largest revenue decline,
+-- identify which product categories contributed most
+-- to the decline.
+with monthly_category_revenue AS (
+    SELECT
+        strftime('%Y-%m', o.order_date) AS month,
+        p.category,
+        SUM(o.quantity * o.unit_price * (1 - o.discount)) AS current_month_revenue
+    FROM orders o
+    JOIN products p ON o.product_id = p.product_id
+    WHERE o.order_status = 'Completed'
+      AND o.order_date >= '2025-01-01'
+      AND o.order_date < '2026-01-01'
+    GROUP BY month, category
+),
+monthly_category_comparison AS (
+    SELECT
+        month,
+        category,
+        current_month_revenue,
+        LAG(current_month_revenue) OVER (
+            PARTITION BY category
+            ORDER BY month
+        ) AS previous_month_revenue
+    FROM monthly_category_revenue
+)
+SELECT
+    month,
+    category,
+    current_month_revenue,
+    previous_month_revenue,
+    current_month_revenue - previous_month_revenue AS revenue_change
+FROM monthly_category_comparison
+WHERE current_month_revenue < previous_month_revenue
+ORDER BY revenue_change ASC;
+
+-- =========================================================
+-- CASE 3: CUSTOMER RETENTION
+-- =========================================================
+
+-- Q3. Calculate how many customers are:
+-- One-time customers = exactly 1 Completed order
+-- Repeat customers   = 2 or more Completed orders
+with customer_order_counts AS (
+    select c.customer_id,
+           count(o.order_id) as completed_order_count
+    from customers c
+    left join orders o ON c.customer_id = o.customer_id AND o.order_status = 'Completed'
+    group by c.customer_id
+)
+select 
+    case 
+        when completed_order_count = 1 then 'One-time customers'
+        when completed_order_count >= 2 then 'Repeat customers'
+    end as customer_type,
+    count(*) as customer_count,
+    count(*) * 100.0 / (select count(*) from customers) as percentage_of_customers
+from customer_order_counts
+group by customer_type;  
+
+-- CASE 4: HIGH-VALUE BUT LOW-FREQUENCY CUSTOMERS
+-- Q4. Identify customers whose total Completed-order revenue
+-- is above the average customer revenue, but whose number
+-- of Completed orders is below the average customer order count.
+with completed_customer_orders as(
+    select c.customer_id,
+           c.customer_name,
+           count(o.order_id) as total_orders,
+           sum(o.quantity * o.unit_price * (1 - o.discount)) as total_revenue
+    from customers c
+    left join orders o ON c.customer_id = o.customer_id AND o.order_status = 'Completed'
+    group by c.customer_id, c.customer_name
+),
+average_customer_counts as (
+    select 
+        avg(total_orders) as avg_orders,
+        avg(total_revenue) as avg_revenue
+    from completed_customer_orders
+)
+select cc.category,
+    cc.customer_id,
+    cc.customer_name,
+    cc.total_orders,
+    cc.total_revenue from completed_customer_orders cc
+cross join average_customer_counts ac
+where cc.total_revenue > ac.avg_revenue
+  and cc.total_orders < ac.avg_orders
+  group by cc.customer_id, cc.customer_name, cc.total_orders, cc.total_revenue
+  order by cc.total_revenue desc;
+
+-- CASE 7: EXECUTIVE SUMMARY
+-- Identify:
+-- 1. Highest-revenue category
+-- 2. Highest-revenue product
+-- 3. Highest-spending customer
+-- 4. Highest-revenue month
+-- 5. Lowest-revenue month
+with highest_revenue_category as (
+    select p.category,
+           sum(o.quantity * o.unit_price * (1 - o.discount)) as total_revenue
+    from orders o
+    join products p on o.product_id = p.product_id
+    where o.order_status = 'Completed'
+    group by p.category
+    order by total_revenue desc
+    limit 1
+),highest_revenue_product as (
+    select p.product_name,
+           sum(o.quantity * o.unit_price * (1 - o.discount)) as total_revenue
+    from orders o
+    join products p on o.product_id = p.product_id
+    where o.order_status = 'Completed'
+    group by p.product_name
+    order by total_revenue desc
+    limit 1
+),highest_spending_customer as (
+    select c.customer_name,
+           sum(o.quantity * o.unit_price * (1 - o.discount)) as total_spent
+    from orders o
+    join customers c on o.customer_id = c.customer_id
+    where o.order_status = 'Completed'
+    group by c.customer_name
+    order by total_spent desc
+    limit 1
+),highest_revenue_month as (
+    select strftime('%Y-%m', o.order_date) as month,
+           sum(o.quantity * o.unit_price * (1 - o.discount)) as total_revenue
+    from orders o
+    where o.order_status = 'Completed'
+    group by month
+    order by total_revenue desc
+    limit 1
+),lowest_revenue_month as (
+    select strftime('%Y-%m', o.order_date) as month,
+           sum(o.quantity * o.unit_price * (1 - o.discount)) as total_revenue
+    from orders o
+    where o.order_status = 'Completed'
+    group by month
+    order by total_revenue asc
+    limit 1
+)
+select 'Highest-revenue category' as metric, category as value from highest_revenue_category
+union all
+select 'Highest-revenue product' as metric, product_name as value from highest_revenue_product
+union all
+select 'Highest-spending customer' as metric, customer_name as value from highest_spending_customer
+union all
+select 'Highest-revenue month' as metric, month as value from highest_revenue_month
+union all
+select 'Lowest-revenue month' as metric, month as value from lowest_revenue_month;
