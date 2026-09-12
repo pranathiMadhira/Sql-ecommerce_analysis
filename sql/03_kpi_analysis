@@ -1,0 +1,57 @@
+-- =========================================================
+-- STEP 3: KPI ANALYSIS
+-- =========================================================
+
+
+-- Q1. How many total orders are in the orders table?
+select COUNT(*) AS TOTAL_ORDERS from orders;
+
+-- Q2. How many orders have the status 'Completed'?
+select COUNT(*) AS COMPLETED_ORDERS from orders where order_status = 'Completed';
+
+-- Q3. How many unique customers have placed at least one order?
+select COUNT(DISTINCT customer_id) AS UNIQUE_CUSTOMERS from orders;
+
+-- Q4. What is the total revenue generated from Completed orders?
+-- Revenue = quantity * unit_price * (1 - discount)
+select Sum(quantity * unit_price * (1 - discount)) AS TOTAL_REVENUE from orders where order_status = 'Completed';
+
+-- Q5. What is the total quantity of products sold in Completed orders?
+select Sum(quantity) AS TOTAL_QUANTITY_SOLD from orders where order_status = 'Completed';
+
+-- Q6. What is the average order value (AOV) for Completed orders?
+-- AOV = Total Revenue / Number of Completed Orders
+select AVG(quantity * unit_price * (1 - discount)) AS AVERAGE_ORDER_VALUE from orders where order_status = 'Completed';
+
+-- Q7. What percentage of all orders were Completed?
+select count(case when order_status ="Completed" then 1 end)*100.0/count(*) as percentage_complete from orders;
+
+-- Q8. What percentage of all orders were Cancelled?
+select count(case when order_status ="Cancelled" then 1 end)*100.0/count(*) as percentage_cancelled from orders;
+
+-- Q9. What is the average discount given across Completed orders?
+select avg(discount) as average_discount from orders where order_status = 'Completed';
+
+-- Q10. Return the following KPIs in ONE result:
+--Total Orders=
+select COUNT(*) AS TOTAL_ORDERS from orders;
+--Completed Orders=
+select COUNT(*) AS COMPLETED_ORDERS from orders where order_status = 'Completed';
+--Cancelled Orders=
+select COUNT(*) AS CANCELLED_ORDERS from orders where order_status = 'Cancelled';
+--Unique Customers=
+select COUNT(DISTINCT customer_id) AS UNIQUE_CUSTOMERS from orders;     
+--Completed Orders=
+select COUNT(*) AS COMPLETED_ORDERS from orders where order_status = 'Completed';
+--Total Revenue=
+select Sum(quantity * unit_price * (1 - discount)) AS TOTAL_REVENUE from orders where order_status = 'Completed';
+--Cancelled Orders=
+select COUNT(*) AS CANCELLED_ORDERS from orders where order_status = 'Cancelled';
+--Total Quantity Sold=
+select Sum(quantity) AS TOTAL_QUANTITY_SOLD from orders where order_status = 'Completed';
+--AOV=
+select sum(quantity*unit_price*(1-discount))/count(*) AS AVERAGE_ORDER_VALUE from orders where order_status = 'Completed';
+--Completion Rate=
+select count(case when order_status ="Completed" then 1 end)*100.0/count(*) as percentage_complete from orders;
+--Cancellation Rate=
+select count(case when order_status ="Cancelled" then 1 end)*100.0/count(*) as percentage_cancelled from orders;
