@@ -77,6 +77,41 @@ Contains transaction-level information:
 The `customers` table is connected to the `orders` table through
 `customer_id`.
 
+## 4. Data Validation
+
+Before performing the analysis, the database was validated to ensure that
+the data contained the expected records and could be reliably used for
+analysis.
+
+### Record Counts
+
+| Table | Number of Records |
+|---|---:|
+| Customers | 500 |
+| Products | 100 |
+| Orders | 5,000 |
+
+### Validation Checks
+
+The following checks were performed:
+
+- Verified the number of records in each table.
+- Verified that `customer_id` uniquely identifies customers.
+- Verified that `product_id` uniquely identifies products.
+- Verified the relationship between customers and orders using `customer_id`.
+- Verified the relationship between products and orders using `product_id`.
+- Checked the available order status values.
+- Checked the numerical fields used in revenue calculations.
+
+### Revenue Calculation
+
+For completed orders, revenue was calculated as:
+
+`quantity × unit_price × (1 - discount)`
+
+Only orders with `order_status = 'Completed'` were included when calculating
+completed sales revenue.
+
 The `products` table is connected to the `orders` table through
 `product_id`.
 
