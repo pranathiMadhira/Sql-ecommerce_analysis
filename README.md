@@ -223,7 +223,7 @@ The analysis includes:
 Window functions such as `LAG()` were used to compare current-period
 performance with previous-period performance.
 
-### 7.5 Business Case Analysis
+### 5.Business Case Analysis
 
 Business-oriented case studies were performed to move beyond basic
 reporting and investigate potential business problems.
@@ -267,7 +267,7 @@ The analysis identified:
 
 ---
 
-## 8. Key Findings
+## 6. Key Findings
 
 The analysis produced the following key findings:
 
@@ -282,7 +282,7 @@ The analysis produced the following key findings:
 
 ---
 
-## 9. Business Recommendations
+## 7. Business Recommendations
 
 Based on the findings from the analysis, the following actions could be
 considered:
@@ -300,7 +300,7 @@ major decisions are made.
 
 ---
 
-## 10. Limitations
+## 7. Limitations
 
 - The dataset covers only the year 2025.
 - The analysis is based on the available e-commerce dataset.
@@ -311,7 +311,7 @@ major decisions are made.
 
 ---
 
-## 11. Conclusion
+## 8. Conclusion
 
 This project used SQL to analyze e-commerce sales performance across
 products, categories, customers, and time.
